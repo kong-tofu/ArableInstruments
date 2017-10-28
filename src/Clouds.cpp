@@ -318,7 +318,9 @@ Menu *CloudsWidget::createContextMenu() {
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "SPECTRAL", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_SPECTRAL));
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "LOOPING_DELAY", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_LOOPING_DELAY));
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "STRETCH", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_STRETCH));
-  
+  menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "OLIVERB", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_OLIVERB));
+  menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "RESONESTOR", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_RESONESTOR));
+    
   menu->pushChild(construct<MenuLabel>(&MenuEntry::text, "STEREO/MONO"));
   menu->pushChild(construct<CloudsMonoItem>(&MenuEntry::text, "STEREO", &CloudsMonoItem::clouds, clouds, &CloudsMonoItem::setting, false));
   menu->pushChild(construct<CloudsMonoItem>(&MenuEntry::text, "MONO", &CloudsMonoItem::clouds, clouds, &CloudsMonoItem::setting, true));  
