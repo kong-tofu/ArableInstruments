@@ -5,9 +5,9 @@ Plugin *plugin;
 
 void init(rack::Plugin *p) {
 	plugin = p;
-	plugin->slug = "ArableInstruments";
-	plugin->name = "Arable Instruments";
+	plugin->slug = "ParableInstruments";
+	plugin->name = "Parable Instruments";
 	plugin->homepageUrl = "https://github.com/adbrant/ArableInstruments";
 
-	createModel<CloudsWidget>(plugin, "Joni", "Joni - Texture Synthesizer");
+	createModel<CloudsWidget>(plugin, "Neil", "Neil - Texture Synthesizer");
 }
