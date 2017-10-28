@@ -1,5 +1,5 @@
 
-# Arable Instruments - Joni
+# Parable Instruments - Neil
 
 Fork of Audible Instruments 'Texture Synthesizer', based on Mutable Instrument's Clouds.
 
