@@ -5,6 +5,7 @@
 #include "dsp/digital.hpp"
 #include "clouds/dsp/granular_processor.h"
 
+#define PARASITES
 
 struct Clouds : Module {
   enum ParamIds {
@@ -19,6 +20,9 @@ struct Clouds : Module {
     FEEDBACK_PARAM,
     REVERB_PARAM,
     FREEZE_PARAM,
+#ifdef PARASITES
+    REVERSE_PARAM,
+#endif     
     NUM_PARAMS
   };
   enum InputIds {
@@ -59,6 +63,11 @@ struct Clouds : Module {
   bool triggered = false;
   float freezeLight = 0.0;
   bool freeze = false;
+#ifdef PARASITES
+  bool reverse = false;
+  float reverseLight = 0.0;
+  SchmittTrigger reverseTrigger;
+#endif
   SchmittTrigger freezeTrigger;
 
   Clouds();
@@ -73,6 +82,9 @@ struct Clouds : Module {
     json_object_set_new(rootJ, "lofi", json_integer(lofi));
     json_object_set_new(rootJ, "mono", json_integer(mono));
     json_object_set_new(rootJ, "freeze", json_integer(freeze));
+#ifdef PARASITES
+    json_object_set_new(rootJ, "reverse", json_integer(reverse));
+#endif
 		return rootJ;
 	}
 
@@ -93,7 +105,12 @@ struct Clouds : Module {
 		if (freezeJ) {
 			freeze = json_integer_value(freezeJ);
 		}    
-    
+#ifdef PARASITES
+    json_t *reverseJ = json_object_get(rootJ, "reverse");
+		if (reverseJ) {
+			reverse = json_integer_value(reverseJ);
+		}    
+#endif    
 	}
   
 };
@@ -108,6 +125,9 @@ Clouds::Clouds() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS) {
   memset(processor, 0, sizeof(*processor));
 
   freezeTrigger.setThresholds(0.0, 1.0);
+#ifdef PARASITES
+  reverseTrigger.setThresholds(0.0, 1.0);   
+#endif  
   processor->Init(block_mem, memLen, block_ccm, ccmLen);
 }
 
@@ -161,6 +181,9 @@ void Clouds::step() {
     if (freezeTrigger.process(params[FREEZE_PARAM].value)) {
        freeze = !freeze;
     } 
+    
+
+    
     clouds::Parameters* p = processor->mutable_parameters();
     p->trigger = triggered;
     p->gate = triggered;
@@ -175,6 +198,14 @@ void Clouds::step() {
     p->stereo_spread =  clampf(params[SPREAD_PARAM].value + inputs[SPREAD_INPUT].value / 5.0, 0.0, 1.0);;
     p->feedback =  clampf(params[FEEDBACK_PARAM].value + inputs[FEEDBACK_INPUT].value / 5.0, 0.0, 1.0);;
     p->reverb =  clampf(params[REVERB_PARAM].value + inputs[REVERB_INPUT].value / 5.0, 0.0, 1.0);;
+
+#ifdef PARASITES
+    if (reverseTrigger.process(params[REVERSE_PARAM].value)) {
+       reverse = !reverse;
+    } 
+    p->granular.reverse = reverse;
+    reverseLight = p->granular.reverse ? 1.0 : 0.0;
+#endif
 
     clouds::ShortFrame output[32];
     processor->Process(input, output, 32);
@@ -217,7 +248,7 @@ CloudsWidget::CloudsWidget() {
 
   {
     Panel *panel = new LightPanel();
-    panel->backgroundImage = Image::load(assetPlugin(plugin, "res/Joni.png"));
+    panel->backgroundImage = Image::load(assetPlugin(plugin, "res/Neil.png"));
     panel->box.size = box.size;
     addChild(panel);
   }
@@ -263,6 +294,10 @@ CloudsWidget::CloudsWidget() {
   
   addParam(createParam<LEDButton>(Vec(68, 52-1), module, Clouds::FREEZE_PARAM, 0.0, 1.0, 0.0));
   addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(68+5, 52+4), &module->freezeLight));
+#ifdef PARASITES 
+  addParam(createParam<LEDButton>(Vec(68-15, 52-1-25), module, Clouds::REVERSE_PARAM, 0.0, 1.0, 0.0));
+  addChild(createValueLight<SmallLight<GreenValueLight>>(Vec(68+5-15, 52+4-25), &module->reverseLight));
+#endif
   
   
 }
@@ -318,9 +353,10 @@ Menu *CloudsWidget::createContextMenu() {
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "SPECTRAL", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_SPECTRAL));
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "LOOPING_DELAY", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_LOOPING_DELAY));
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "STRETCH", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_STRETCH));
+#ifdef PARASITES  
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "OLIVERB", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_OLIVERB));
   menu->pushChild(construct<CloudsModeItem>(&MenuEntry::text, "RESONESTOR", &CloudsModeItem::clouds, clouds, &CloudsModeItem::mode, clouds::PLAYBACK_MODE_RESONESTOR));
-    
+#endif     
   menu->pushChild(construct<MenuLabel>(&MenuEntry::text, "STEREO/MONO"));
   menu->pushChild(construct<CloudsMonoItem>(&MenuEntry::text, "STEREO", &CloudsMonoItem::clouds, clouds, &CloudsMonoItem::setting, false));
   menu->pushChild(construct<CloudsMonoItem>(&MenuEntry::text, "MONO", &CloudsMonoItem::clouds, clouds, &CloudsMonoItem::setting, true));  
@@ -328,10 +364,6 @@ Menu *CloudsWidget::createContextMenu() {
   menu->pushChild(construct<MenuLabel>(&MenuEntry::text, "HIFI/LOFI"));
   menu->pushChild(construct<CloudsLofiItem>(&MenuEntry::text, "HIFI", &CloudsLofiItem::clouds, clouds, &CloudsLofiItem::setting, false));
   menu->pushChild(construct<CloudsLofiItem>(&MenuEntry::text, "LOFI", &CloudsLofiItem::clouds, clouds, &CloudsLofiItem::setting, true));  
-  
-  
-  
-  
   
   return menu;
 }
